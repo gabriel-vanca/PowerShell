@@ -7,11 +7,6 @@
 # Force use of TLS 1.2 for all downloads.
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# Saves the current working directory in memory (via a directory stack) so it can be returned to at any time,
-# places the new filepath at the top of the stack, and changes to the new filepath.
-# The Pop-Location command returns to the path at the top of the directory stack.
-Push-Location $PSScriptRoot
-
 
 Write-Host "List current Powershell version" -ForegroundColor DarkYellow
 $PSVersionTable
@@ -34,7 +29,8 @@ catch {
 Write-Host "Refreshing terminal"
 .$PROFILE
 
-if($IsWindows) {
+# ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
+if($IsWindows -or ($NULL -eq $IsWindows)) {
     # Expected path of the choco.exe file.
     $chocoInstallPath = "$Env:ProgramData/chocolatey/choco.exe"
     if(Test-Path "$chocoInstallPath") {
@@ -47,9 +43,8 @@ if($IsWindows) {
     }
 }
 
-
-Write-Host "Step 2: Installing Fonts via Oh-my-posh"
 # Font source: https://github.com/ryanoasis/nerd-fonts
+Write-Host "Step 2: Installing Fonts via Oh-my-posh"
 
 oh-my-posh font install CascadiaCode
 oh-my-posh font install Cousine
@@ -68,6 +63,7 @@ oh-my-posh font install SourceCodePro
 
 
 Write-Host "Step 3: Additional tech fonts installation"
+
 Write-Host "Downloading \Fonts and preparing them for installation"
 
 $repoDownloadLocalPath  = "$env:Temp\Fonts_to_install"
@@ -84,34 +80,27 @@ Get-ChildItem $repoDownloadLocalPath -Recurse | Unblock-File
 $gitRepoPath = $repoDownloadLocalPath + "\.git"
 Remove-Item $gitRepoPath -Recurse -Force
 
+$fontsDownloadPath = $repoDownloadLocalPath + "\Fonts"
 
 Write-Host "Installing content of the \Fonts directory"
+$scriptPath = "https://raw.githubusercontent.com/gabriel-vanca/PowerShell_Library/main/Scripts/Core/Fonts/Install-Fonts.ps1"
+$WebClient = New-Object Net.WebClient
+$deploymentScript = $WebClient.DownloadString($scriptPath)
+$deploymentScript = [Scriptblock]::Create($deploymentScript)
+Invoke-Command -ScriptBlock $deploymentScript -ArgumentList ($fontsDownloadPath) -NoNewScope
 
-if($IsWindows) {
-    $fontsDownloadPath = $repoDownloadLocalPath + "\Fonts"
+Remove-Item $repoDownloadLocalPath -Recurse -Force
 
-    $scriptPath = "https://raw.githubusercontent.com/gabriel-vanca/PowerShell_Library/main/Scripts/Windows/Fonts/Install-Fonts.ps1"
-    $WebClient = New-Object Net.WebClient
-    $deploymentScript = $WebClient.DownloadString($scriptPath)
-    $deploymentScript = [Scriptblock]::Create($deploymentScript)
-    Invoke-Command -ScriptBlock $deploymentScript -ArgumentList ($fontsDownloadPath) -NoNewScope
-} else {
-    Write-Error "Operating System font install not implemented"
-}
-
-if(Test-Path -path $repoDownloadLocalPath)
-{ 
-    Remove-Item $repoDownloadLocalPath -Recurse -Force
-}
 
 Write-Host "Step 4: Refreshing terminal"
 
 .$PROFILE
 
-if($IsWindows) {
+# ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
+if($IsWindows -or ($NULL -eq $IsWindows)) {
     # Expected path of the choco.exe file.
     $chocoInstallPath = "$Env:ProgramData/chocolatey/choco.exe"
-    if(Test-Path "$chocoInstallPath") {
+    if(Test-Path -path $chocoInstallPath) {
         # Make `refreshenv` available right away, by defining the $env:ChocolateyInstall
         # variable and importing the Chocolatey profile module.
         $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."   
@@ -122,4 +111,4 @@ if($IsWindows) {
 }
 
 
-Write-Host "Step 5: "
+# Write-Host "Step 5: "

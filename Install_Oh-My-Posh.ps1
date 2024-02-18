@@ -31,7 +31,8 @@ pwsh -NoProfile -NonInteractive -Command {
     }
 }
 
-if($IsWindows) {
+# ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
+if($IsWindows -or ($NULL -eq $IsWindows)) {
     powershell -NoProfile -NonInteractive -Command {
         if (Get-Module oh-my-posh) {
             try {
@@ -46,7 +47,8 @@ if($IsWindows) {
 
 Write-Host "Proceeding with installation"
 
-if($IsWindows) {
+# ($NULL -eq $IsWindows) checks for Windows Sandbox enviroment
+if($IsWindows -or ($NULL -eq $IsWindows)) {
     $wingetBasedInstall = $False
     $chocoBasedInstall = $False
     $osInfo = Get-CimInstance -ClassName Win32_OperatingSystem
@@ -87,7 +89,6 @@ if($IsWindows) {
             Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://ohmyposh.dev/install.ps1'))
         }
     }
-
 } else {
     if($IsLinux) {
         Write-Host "Linux deployment detected."
@@ -110,7 +111,6 @@ if($IsWindows) {
         }
     }
 }
-
 
 Write-Host "Testing installation" -ForegroundColor DarkYellow
 
